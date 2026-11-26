@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.LauncherYou" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.LauncherYou.Home">
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+</resources>
