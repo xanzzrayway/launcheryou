@@ -94,7 +94,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -143,6 +145,10 @@ fun Home(store: SettingsStore, apps: List<AppInfo>, homePress: Int) {
 
     val pinned = remember(apps, s.pinned) { s.pinned.mapNotNull { k -> apps.firstOrNull { it.key == k } } }
     val dock = remember(apps) { dockApps(ctx, apps) }
+    LaunchedEffect(apps, s.iconPack) {
+        withContext(Dispatchers.Default) { IconPacks.prepare(ctx.applicationContext, apps, s.iconPack) }
+        IconPacks.version++
+    }
 
     Box(
         Modifier
@@ -308,7 +314,16 @@ fun ClockWidget(s: UiSettings) {
 @Composable
 fun AppIcon(app: AppInfo, s: UiSettings, size: Dp) {
     val cs = MaterialTheme.colorScheme
-    val mono = if (s.themedIcons) app.mono else null
+    val packId = s.iconPack
+    val ext = remember(app.key, packId, IconPacks.version) { IconPacks.cached(packId, app.key) }
+    if (ext != null) {
+        // Ikon dari paket ikon dipakai apa adanya (bentuknya ditentukan paket).
+        Image(ext, null, Modifier.size(size))
+        return
+    }
+    val builtinFilter = remember(packId, cs.primary) { IconPacks.filterFor(packId, cs.primary) }
+    val useMono = packId == "materialyou" || (packId == "system" && s.themedIcons)
+    val mono = if (useMono) app.mono else null
     val bg = app.bg
     val fg = app.fg
     Box(
@@ -323,10 +338,10 @@ fun AppIcon(app: AppInfo, s: UiSettings, size: Dp) {
             mono != null -> Image(mono, null, Modifier.requiredSize(size * 1.5f), colorFilter = ColorFilter.tint(cs.onPrimaryContainer))
             // Ikon adaptif: gambar ulang dua lapisan agar mengikuti bentuk pilihan pengguna.
             bg != null && fg != null -> {
-                Image(bg, null, Modifier.requiredSize(size * 1.5f))
-                Image(fg, null, Modifier.requiredSize(size * 1.5f))
+                Image(bg, null, Modifier.requiredSize(size * 1.5f), colorFilter = builtinFilter)
+                Image(fg, null, Modifier.requiredSize(size * 1.5f), colorFilter = builtinFilter)
             }
-            else -> Image(app.plain, null, Modifier.fillMaxSize().padding(size * 0.1f))
+            else -> Image(app.plain, null, Modifier.fillMaxSize().padding(size * 0.1f), colorFilter = builtinFilter)
         }
     }
 }

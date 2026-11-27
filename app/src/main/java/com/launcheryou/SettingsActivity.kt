@@ -141,6 +141,8 @@ fun SettingsScreen(store: SettingsStore) {
 
             Section("Wallpaper") { WallpaperPicker(store) }
 
+            Section("Paket ikon") { IconPackSection(store) }
+
             Section("Ikon") {
                 Text("Bentuk", style = MaterialTheme.typography.labelLarge, color = cs.onSurfaceVariant)
                 ChipRow(listOf("Lingkaran" to 0, "Squircle" to 1, "Kotak bulat" to 2, "Bunga" to 3), s.iconShape) { v ->

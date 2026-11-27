@@ -31,7 +31,8 @@ data class UiSettings(
     val amoled: Boolean = false,
     val scrim: Float = 0.15f,
     val clock24: Boolean = true,
-    val showDock: Boolean = true
+    val showDock: Boolean = true,
+    val iconPack: String = "system"
 )
 
 class SettingsStore(context: Context) {
@@ -61,6 +62,7 @@ class SettingsStore(context: Context) {
         scrim = sp.getFloat("scrim", 0.15f),
         clock24 = sp.getBoolean("clock24", true),
         showDock = sp.getBoolean("dock", true),
+        iconPack = sp.getString("iconpack", "system") ?: "system",
         pinned = (sp.getString("pinned", "") ?: "").split(",").filter { it.isNotBlank() }
     )
 
@@ -81,6 +83,7 @@ class SettingsStore(context: Context) {
             .putFloat("scrim", n.scrim)
             .putBoolean("clock24", n.clock24)
             .putBoolean("dock", n.showDock)
+            .putString("iconpack", n.iconPack)
             .putString("pinned", n.pinned.joinToString(","))
             .apply()
         settings = n
