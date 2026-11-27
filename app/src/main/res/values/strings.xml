@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">LauncherYou</string>
     <string name="settings_name">SetelanYou</string>
+    <string name="a11y_desc">Dipakai Control Center LauncherYou untuk mengunci layar, membuka notifikasi, dan panel pengaturan cepat.</string>
 </resources>

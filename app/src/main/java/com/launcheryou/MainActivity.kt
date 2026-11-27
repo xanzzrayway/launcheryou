@@ -260,7 +260,7 @@ fun Home(store: SettingsStore, apps: List<AppInfo>, homePress: Int) {
             visible = cc,
             enter = slideInVertically(spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)) { -it / 4 } + fadeIn(tween(220)) + scaleIn(initialScale = 0.94f),
             exit = slideOutVertically(tween(220)) { -it / 4 } + fadeOut(tween(160)) + scaleOut(targetScale = 0.96f)
-        ) { ControlCenter { cc = false } }
+        ) { ControlCenter(store) { cc = false } }
     }
 }
 
