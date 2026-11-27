@@ -29,7 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Place
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Settings as SettingsIcon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -113,9 +113,9 @@ fun SettingsScreen(store: SettingsStore) {
                             Box(
                                 Modifier
                                     .size(40.dp)
-                                    .clip(CircleShape)
+                                    .clip(FlowerShape(10, 0.07f))
                                     .background(Color.hsl(hue.toFloat(), .55f, .5f))
-                                    .then(if (s.seedHue == hue) Modifier.border(3.dp, cs.onSurface, CircleShape) else Modifier)
+                                    .then(if (s.seedHue == hue) Modifier.border(3.dp, cs.onSurface, FlowerShape(10, 0.07f)) else Modifier)
                                     .clickable(enabled = !dynamicActive) { store.update { st -> st.copy(seedHue = hue) } }
                             )
                         }
@@ -132,11 +132,18 @@ fun SettingsScreen(store: SettingsStore) {
                 ChipRow(listOf("Ikuti sistem" to 0, "Terang" to 1, "Gelap" to 2), s.themeMode) { v ->
                     store.update { st -> st.copy(themeMode = v) }
                 }
+                SwitchRow("Hitam AMOLED", "Latar hitam pekat di mode gelap", s.amoled) { v ->
+                    store.update { st -> st.copy(amoled = v) }
+                }
             }
+
+            Section("Tema siap pakai") { ThemePresets(store) }
+
+            Section("Wallpaper") { WallpaperPicker(store) }
 
             Section("Ikon") {
                 Text("Bentuk", style = MaterialTheme.typography.labelLarge, color = cs.onSurfaceVariant)
-                ChipRow(listOf("Lingkaran" to 0, "Squircle" to 1, "Kotak bulat" to 2), s.iconShape) { v ->
+                ChipRow(listOf("Lingkaran" to 0, "Squircle" to 1, "Kotak bulat" to 2, "Bunga" to 3), s.iconShape) { v ->
                     store.update { st -> st.copy(iconShape = v) }
                 }
                 SwitchRow(
@@ -163,9 +170,25 @@ fun SettingsScreen(store: SettingsStore) {
                 SwitchRow("Control Center", "Geser ke bawah dari sisi kanan atas layar", s.controlCenter) { v ->
                     store.update { st -> st.copy(controlCenter = v) }
                 }
+                SwitchRow("Jam 24 jam", "Matikan untuk format 12 jam", s.clock24) { v ->
+                    store.update { st -> st.copy(clock24 = v) }
+                }
+                SwitchRow("Tampilkan dock", "Telepon, pesan, peramban, kamera", s.showDock) { v ->
+                    store.update { st -> st.copy(showDock = v) }
+                }
+                Text("Redupkan wallpaper di beranda", style = MaterialTheme.typography.labelLarge, color = cs.onSurfaceVariant)
+                Slider(
+                    value = s.scrim,
+                    onValueChange = { v -> store.update { st -> st.copy(scrim = v) } },
+                    valueRange = 0f..0.6f
+                )
                 FilledTonalButton(onClick = { store.update { st -> st.copy(pinned = emptyList()) } }) {
                     Text("Kosongkan beranda")
                 }
+                FilledTonalButton(onClick = {
+                    store.update { st -> st.copy(setupDone = false) }
+                    open(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME))
+                }) { Text("Ulangi setup awal") }
             }
 
             Section("Izin & launcher") {
@@ -182,7 +205,7 @@ fun SettingsScreen(store: SettingsStore) {
 }
 
 @Composable
-private fun Preview(s: UiSettings) {
+fun Preview(s: UiSettings) {
     val cs = MaterialTheme.colorScheme
     Surface(shape = RoundedCornerShape(32.dp), color = cs.primaryContainer, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -192,7 +215,7 @@ private fun Preview(s: UiSettings) {
                     Triple(Icons.Rounded.Call, cs.primary, cs.onPrimary),
                     Triple(Icons.Rounded.Email, cs.secondaryContainer, cs.onSecondaryContainer),
                     Triple(Icons.Rounded.Place, cs.tertiaryContainer, cs.onTertiaryContainer),
-                    Triple(Icons.Rounded.Settings, cs.surface, cs.onSurface)
+                    Triple(Icons.Rounded.SettingsIcon, cs.surface, cs.onSurface)
                 ).forEach { (icon, bg, fg) ->
                     Box(
                         Modifier.size(52.dp * s.iconScale).clip(iconShape(s.iconShape)).background(bg),
@@ -205,7 +228,7 @@ private fun Preview(s: UiSettings) {
 }
 
 @Composable
-private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
     val cs = MaterialTheme.colorScheme
     Surface(shape = RoundedCornerShape(28.dp), color = cs.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -216,7 +239,7 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
 }
 
 @Composable
-private fun SwitchRow(title: String, desc: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
+fun SwitchRow(title: String, desc: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(Modifier.fillMaxWidth().alpha(if (enabled) 1f else .5f), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
@@ -228,7 +251,7 @@ private fun SwitchRow(title: String, desc: String, checked: Boolean, enabled: Bo
 }
 
 @Composable
-private fun <T> ChipRow(options: List<Pair<String, T>>, selected: T, onSelect: (T) -> Unit) {
+fun <T> ChipRow(options: List<Pair<String, T>>, selected: T, onSelect: (T) -> Unit) {
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { (label, value) ->
             FilterChip(selected = value == selected, onClick = { onSelect(value) }, label = { Text(label) })

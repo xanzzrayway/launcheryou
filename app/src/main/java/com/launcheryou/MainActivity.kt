@@ -9,7 +9,24 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.Settings as SettingsIcon
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -93,7 +110,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         store = SettingsStore(this)
         setContent {
-            LauncherYouTheme(store.settings) { Home(store, apps, homePress) }
+            LauncherYouTheme(store.settings) {
+                Crossfade(targetState = store.settings.setupDone, animationSpec = tween(450), label = "setup") { done ->
+                    if (done) Home(store, apps, homePress) else SetupWizard(store)
+                }
+            }
         }
     }
 
@@ -126,6 +147,7 @@ fun Home(store: SettingsStore, apps: List<AppInfo>, homePress: Int) {
     Box(
         Modifier
             .fillMaxSize()
+            .background(Color.Black.copy(alpha = s.scrim))
             .pointerInput(Unit) {
                 var t = 0f
                 detectVerticalDragGestures(onDragStart = { t = 0f }) { _, d ->
@@ -141,7 +163,7 @@ fun Home(store: SettingsStore, apps: List<AppInfo>, homePress: Int) {
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            ClockWidget()
+            ClockWidget(s)
             Spacer(Modifier.height(24.dp))
 
             if (pinned.isEmpty()) {
@@ -157,11 +179,11 @@ fun Home(store: SettingsStore, apps: List<AppInfo>, homePress: Int) {
                     )
                 }
             }
-            pinned.chunked(s.columns).forEach { row ->
+            pinned.chunked(s.columns).forEachIndexed { r, row ->
                 Row(Modifier.fillMaxWidth()) {
-                    row.forEach { app ->
+                    row.forEachIndexed { c, app ->
                         AppCell(
-                            app, s, Modifier.weight(1f),
+                            app, s, Modifier.weight(1f), index = r * s.columns + c,
                             onClick = { launchApp(ctx, app) },
                             menu = { d -> AppMenu(app, s, store, d) }
                         )
@@ -172,7 +194,7 @@ fun Home(store: SettingsStore, apps: List<AppInfo>, homePress: Int) {
 
             Spacer(Modifier.weight(1f))
 
-            if (dock.isNotEmpty()) {
+            if (s.showDock && dock.isNotEmpty()) {
                 Surface(
                     shape = RoundedCornerShape(36.dp),
                     color = cs.surfaceContainer.copy(alpha = .9f),
@@ -189,16 +211,24 @@ fun Home(store: SettingsStore, apps: List<AppInfo>, homePress: Int) {
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Surface(
-                onClick = { drawer = true },
-                shape = CircleShape,
-                color = cs.surfaceContainerHighest.copy(alpha = .92f),
-                modifier = Modifier.fillMaxWidth().height(52.dp)
-            ) {
-                Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Search, null, tint = cs.onSurfaceVariant)
-                    Spacer(Modifier.width(12.dp))
-                    Text("Cari aplikasi", color = cs.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    onClick = { drawer = true },
+                    shape = CircleShape,
+                    color = cs.surfaceContainerHighest.copy(alpha = .92f),
+                    modifier = Modifier.weight(1f).height(56.dp)
+                ) {
+                    Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.Search, null, tint = cs.onSurfaceVariant)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Cari aplikasi", color = cs.onSurfaceVariant)
+                    }
+                }
+                Spacer(Modifier.width(10.dp))
+                FlowerButton(Icons.Rounded.Apps, "Laci aplikasi", cs.primaryContainer, cs.onPrimaryContainer) { drawer = true }
+                Spacer(Modifier.width(10.dp))
+                FlowerButton(Icons.Rounded.SettingsIcon, "SetelanYou", cs.tertiaryContainer, cs.onTertiaryContainer) {
+                    runCatching { ctx.startActivity(Intent(ctx, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 }
             }
         }
@@ -222,20 +252,20 @@ fun Home(store: SettingsStore, apps: List<AppInfo>, homePress: Int) {
 
         AnimatedVisibility(
             visible = drawer,
-            enter = slideInVertically { it } + fadeIn(),
-            exit = slideOutVertically { it } + fadeOut()
+            enter = slideInVertically(spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)) { it } + fadeIn(tween(200)),
+            exit = slideOutVertically(tween(260)) { it } + fadeOut(tween(200))
         ) { Drawer(apps, s, store) { drawer = false } }
 
         AnimatedVisibility(
             visible = cc,
-            enter = slideInVertically { -it / 4 } + fadeIn(),
-            exit = slideOutVertically { -it / 4 } + fadeOut()
+            enter = slideInVertically(spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)) { -it / 4 } + fadeIn(tween(220)) + scaleIn(initialScale = 0.94f),
+            exit = slideOutVertically(tween(220)) { -it / 4 } + fadeOut(tween(160)) + scaleOut(targetScale = 0.96f)
         ) { ControlCenter { cc = false } }
     }
 }
 
 @Composable
-fun ClockWidget() {
+fun ClockWidget(s: UiSettings) {
     val cs = MaterialTheme.colorScheme
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) {
@@ -244,16 +274,33 @@ fun ClockWidget() {
             delay(60_000L - (now.second * 1000L + now.nano / 1_000_000L))
         }
     }
-    val time = remember(now) { now.format(DateTimeFormatter.ofPattern("HH:mm")) }
+    val time = remember(now, s.clock24) { now.format(DateTimeFormatter.ofPattern(if (s.clock24) "HH:mm" else "hh:mm")) }
     val date = remember(now) { now.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale("id", "ID"))) }
     Surface(
         shape = RoundedCornerShape(32.dp),
         color = cs.surfaceContainer.copy(alpha = .9f),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(horizontal = 24.dp, vertical = 20.dp)) {
-            Text(time, fontSize = 72.sp, fontWeight = FontWeight.Light, color = cs.onSurface, letterSpacing = (-2).sp)
-            Text(date, style = MaterialTheme.typography.titleMedium, color = cs.onSurfaceVariant)
+        Row(Modifier.padding(horizontal = 24.dp, vertical = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                AnimatedContent(
+                    targetState = time,
+                    transitionSpec = {
+                        (slideInVertically(spring(stiffness = Spring.StiffnessMediumLow)) { it / 2 } + fadeIn(tween(250)))
+                            .togetherWith(slideOutVertically(spring(stiffness = Spring.StiffnessMediumLow)) { -it / 2 } + fadeOut(tween(150)))
+                    },
+                    label = "clock"
+                ) { t ->
+                    Text(t, fontSize = 72.sp, fontWeight = FontWeight.Light, color = cs.onSurface, letterSpacing = (-2).sp)
+                }
+                Text(date, style = MaterialTheme.typography.titleMedium, color = cs.onSurfaceVariant)
+            }
+            Box(
+                Modifier.size(64.dp).clip(FlowerShape(12, 0.06f)).background(cs.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(now.dayOfMonth.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = cs.onPrimary)
+            }
         }
     }
 }
@@ -292,16 +339,49 @@ fun AppCell(
     modifier: Modifier = Modifier,
     showLabel: Boolean = s.showLabels,
     labelColor: Color = Color.White,
+    index: Int = 0,
     onClick: () -> Unit,
     menu: (@Composable (dismiss: () -> Unit) -> Unit)? = null
 ) {
     var open by remember { mutableStateOf(false) }
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    val press by animateFloatAsState(
+        if (pressed) 0.86f else 1f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "press"
+    )
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { delay(minOf(index, 14) * 28L); shown = true }
+    val enter by animateFloatAsState(
+        if (shown) 1f else 0f,
+        spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessLow),
+        label = "enter"
+    )
+    val haptic = LocalHapticFeedback.current
     Box(modifier) {
         Column(
             Modifier
                 .fillMaxWidth()
+                .graphicsLayer {
+                    val sc = press * (0.6f + 0.4f * enter)
+                    scaleX = sc
+                    scaleY = sc
+                    alpha = enter.coerceIn(0f, 1f)
+                    translationY = (1f - enter) * 40f
+                }
                 .clip(RoundedCornerShape(16.dp))
-                .combinedClickable(onClick = onClick, onLongClick = { if (menu != null) open = true })
+                .combinedClickable(
+                    interactionSource = src,
+                    indication = LocalIndication.current,
+                    onClick = onClick,
+                    onLongClick = {
+                        if (menu != null) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            open = true
+                        }
+                    }
+                )
                 .padding(vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

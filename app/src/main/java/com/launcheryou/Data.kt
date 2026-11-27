@@ -26,7 +26,12 @@ data class UiSettings(
     val showLabels: Boolean = true,
     val iconScale: Float = 1f,
     val controlCenter: Boolean = true,
-    val pinned: List<String> = emptyList()
+    val pinned: List<String> = emptyList(),
+    val setupDone: Boolean = false,
+    val amoled: Boolean = false,
+    val scrim: Float = 0.15f,
+    val clock24: Boolean = true,
+    val showDock: Boolean = true
 )
 
 class SettingsStore(context: Context) {
@@ -51,6 +56,11 @@ class SettingsStore(context: Context) {
         showLabels = sp.getBoolean("labels", true),
         iconScale = sp.getFloat("scale", 1f),
         controlCenter = sp.getBoolean("cc", true),
+        setupDone = sp.getBoolean("setup", false),
+        amoled = sp.getBoolean("amoled", false),
+        scrim = sp.getFloat("scrim", 0.15f),
+        clock24 = sp.getBoolean("clock24", true),
+        showDock = sp.getBoolean("dock", true),
         pinned = (sp.getString("pinned", "") ?: "").split(",").filter { it.isNotBlank() }
     )
 
@@ -66,6 +76,11 @@ class SettingsStore(context: Context) {
             .putBoolean("labels", n.showLabels)
             .putFloat("scale", n.iconScale)
             .putBoolean("cc", n.controlCenter)
+            .putBoolean("setup", n.setupDone)
+            .putBoolean("amoled", n.amoled)
+            .putFloat("scrim", n.scrim)
+            .putBoolean("clock24", n.clock24)
+            .putBoolean("dock", n.showDock)
             .putString("pinned", n.pinned.joinToString(","))
             .apply()
         settings = n

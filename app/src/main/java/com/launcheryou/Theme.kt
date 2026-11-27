@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 fun iconShape(kind: Int): Shape = when (kind) {
     1 -> RoundedCornerShape(percent = 34)   // squircle
     2 -> RoundedCornerShape(percent = 22)   // kotak bulat
+    3 -> FlowerShape(8, 0.07f)              // bunga
     else -> CircleShape
 }
 
@@ -66,5 +67,11 @@ fun LauncherYouTheme(s: UiSettings, content: @Composable () -> Unit) {
     val scheme = if (s.dynamicColor && Build.VERSION.SDK_INT >= 31) {
         if (dark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
     } else seedScheme(s.seedHue.toFloat(), dark)
-    MaterialTheme(colorScheme = scheme, content = content)
+    val finalScheme = if (dark && s.amoled) scheme.copy(
+        background = Color.Black, surface = Color.Black,
+        surfaceContainerLowest = Color.Black, surfaceContainerLow = Color(0xFF0A0A0A),
+        surfaceContainer = Color(0xFF111111), surfaceContainerHigh = Color(0xFF181818),
+        surfaceContainerHighest = Color(0xFF202020)
+    ) else scheme
+    MaterialTheme(colorScheme = finalScheme, content = content)
 }

@@ -16,8 +16,15 @@ import android.provider.AlarmClock
 import android.provider.MediaStore
 import android.provider.Settings
 import android.view.KeyEvent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -298,12 +305,26 @@ private fun Panel(modifier: Modifier, content: @Composable BoxScope.() -> Unit) 
 @Composable
 private fun RoundToggle(icon: ImageVector, active: Boolean, label: String, size: Dp = 56.dp, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    // Aktif = berubah jadi bunga (morf mulus), ditekan = mengempis.
+    val depth by animateFloatAsState(
+        if (active) (if (pressed) 0.03f else 0.08f) else 0f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "flower"
+    )
+    val sc by animateFloatAsState(
+        if (pressed) 0.88f else 1f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "press"
+    )
     Box(
         Modifier
             .size(size)
-            .clip(CircleShape)
+            .graphicsLayer { scaleX = sc; scaleY = sc }
+            .clip(FlowerShape(8, depth))
             .background(if (active) cs.primary else cs.surfaceContainerHighest)
-            .clickable(onClickLabel = label, onClick = onClick),
+            .clickable(interactionSource = src, indication = LocalIndication.current, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, label, tint = if (active) cs.onPrimary else cs.onSurface)
